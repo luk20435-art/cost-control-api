@@ -30,10 +30,11 @@ export class AuthController {
     const { username, password } = req.body;
     const { token, user } = this.authService.login(username, password);
 
+    const secure = this.configService.get('cookie.secure') as boolean;
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: this.configService.get('cookie.secure') as boolean,
+      sameSite: secure ? 'none' : 'lax',
+      secure,
       maxAge: expiresInToMs(this.configService.get('jwt.expiresIn') as string),
       path: '/',
     });
@@ -49,7 +50,12 @@ export class AuthController {
 
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(COOKIE_NAME, { path: '/' });
+    const secure = this.configService.get('cookie.secure') as boolean;
+    res.clearCookie(COOKIE_NAME, {
+      path: '/',
+      sameSite: secure ? 'none' : 'lax',
+      secure,
+    });
     return { success: true };
   }
 }
